@@ -1,6 +1,6 @@
 from api import PetFriends
 from settings import valid_email, valid_psw, \
-    wrong_email
+    wrong_email, wrong_psw
 
 import os
 
@@ -26,10 +26,8 @@ def test_get_all_pets_for_valid_key(filter=''):
 def test_get_all_pets_for_no_valid_key(filter=''):
     """ Тестируем на предмет получение списка всех питомцев используя не валидный ключ"""
     _, auth_key = pf.get_api_key(valid_email, valid_psw)
-    print(auth_key)
     status, result = pf.get_list_of_pets_with_no_valid_key(auth_key, filter)
-    assert status != 200
-    assert len(result['pets']) == 0
+    assert status == 403
 
 
 

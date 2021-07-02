@@ -55,10 +55,6 @@ class PetFriends:
         res = requests.get(self.base_url + 'api/pets', headers=headers, params=filter)
         status = res.status_code
         result = ""
-        try:
-            result = res.json()
-        except json.decoder.JSONDecodeError:
-            result = res.text
 
         return status, result
 
