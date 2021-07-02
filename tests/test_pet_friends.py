@@ -1,6 +1,6 @@
 from api import PetFriends
 from settings import valid_email, valid_psw, \
-    wrong_email, wrong_psw
+    wrong_email
 
 import os
 
@@ -12,7 +12,7 @@ def test_get_api_for_valid_user(email=valid_email, password=valid_psw):
     status, result = pf.get_api_key(email, password)
     assert status == 200
     assert 'key' in result
-    print(result)
+    # print(result)
 
 
 def test_get_all_pets_for_valid_key(filter=''):
@@ -21,6 +21,16 @@ def test_get_all_pets_for_valid_key(filter=''):
     status, result = pf.get_list_of_pets(auth_key, filter)
     assert status == 200
     assert len(result['pets']) > 0
+
+
+def test_get_all_pets_for_no_valid_key(filter=''):
+    """ Тестируем на предмет получение списка всех питомцев используя не валидный ключ"""
+    _, auth_key = pf.get_api_key(valid_email, valid_psw)
+    print(auth_key)
+    status, result = pf.get_list_of_pets_with_no_valid_key(auth_key, filter)
+    assert status != 200
+    assert len(result['pets']) == 0
+
 
 
 def test_add_new_pet_for_valid_data(name='Рыжий', animal_type='Kошка', age='2', pet_photo='images/cat.jpg'):
@@ -49,19 +59,19 @@ def test_successful_delete_self_pet():
 
     # Проверяем - если список своих питомцев пустой, то добавляем нового и опять запрашиваем список своих питомцев
     if len(my_pets['pets']) == 0:
-        pf.add_new_pet(auth_key, "Суперкот", "кот", "3", "images/cat.jpg")
-        _, my_pets = pf.get_list_of_pets(auth_key, "my_pets")
+        pf.add_new_pet(auth_key, 'Суперкот', 'кот', '3', 'images/cat.jpg')
+        _, my_pets = pf.get_list_of_pets(auth_key, 'm_pets')
 
     # Берём id первого питомца из списка и отправляем запрос на удаление
     pet_id = my_pets['pets'][0]['id']
     # print(pet_id)
-    status, _ = pf.delete_pet(auth_key, pet_id)
+    status, = pf.delete_pet(auth_key, pet_id)
 
     # Ещё раз запрашиваем список своих питомцев
-    _, my_pets = pf.get_list_of_pets(auth_key, "my_pets")
+    _, my_pets = pf.get_list_of_pets(auth_key, 'my_pets')
 
     # Проверяем что статус ответа равен 200 и в списке питомцев нет id удалённого питомца
-    assert status == 400
+    assert status == 200
     assert pet_id not in my_pets.values()
 
 
@@ -83,6 +93,18 @@ def test_successful_update_self_pet_info(name='Мурз', animal_type='Кот', 
         # если спиок питомцев пустой, то выкидываем исключение с текстом об отсутствии своих питомцев
         raise Exception("There is no my pets")
 
+
+def test_delete_pet_with_invalid_id():
+    """test to check the possibility of removing a pet with a non-exist id """
+    _, auth_key = pf.get_api_key(valid_email, valid_psw)
+    _, my_pets = pf.get_list_of_pets(auth_key, "my_pets")
+
+    if len(my_pets['pets']) == 0:
+        pet_id = '1234567891'
+        status, _ = pf.delete_pet(auth_key, pet_id)
+        _, my_pets = pf.get_list_of_pets(auth_key, "my_pets")
+
+        assert status != 200
 
 def test_get_api_key_for_invalid_email(email=wrong_email, password=valid_psw):
     """REST API testing with wrong email"""
@@ -121,7 +143,16 @@ def test_add_new_pet_with_wrong_info(name=123, animal_type=(1, 2, 3), age='xyz',
     assert status == 400
 
 
-def test_create_pet_simple_with_long_name(name='кыс ' * 1000, animal_type='cat', age=2):
+def test_create_pet_simple_with_boundary_value_name(name='кыс' * 255, animal_type='cat', age=2):
+    """REST API testing with borderline name and status 200"""
+
+    _, auth_key = pf.get_api_key(valid_email, valid_psw)
+    status, result = pf.create_pet_simple(auth_key, name, animal_type, age)
+    assert status == 200
+    assert result['name'] == name
+
+
+def test_create_pet_simple_with_long_name(name='кыс' * 1000, animal_type='cat', age=2):
     """REST API testing with long name and status 200"""
 
     _, auth_key = pf.get_api_key(valid_email, valid_psw)
